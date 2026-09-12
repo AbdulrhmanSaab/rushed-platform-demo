@@ -961,6 +961,43 @@ html[dir="rtl"] .fcCell .v .tag{margin:0 0 6px 6px}
 
 .fcEdit{padding:16px 20px 18px}
 .fcEdit .d{font-size:12.5px;color:var(--muted);line-height:1.75}
+
+/* ================= MOBILE / PORTRAIT ================= */
+@media (max-width:820px){
+  #actCard{padding:26px 22px}
+  #actCard .acn{font-size:10.5px;letter-spacing:2.4px;margin-bottom:10px}
+  #actCard .act{font-size:26px;line-height:1.25;margin:0 0 8px}
+  #actCard .acs{font-size:13.5px;line-height:1.65;max-width:92vw}
+
+  #roleCard{padding:24px 18px}
+  #roleCard .rcw{max-width:100%}
+  #roleCard .rcn{font-size:10.5px;letter-spacing:2.6px;margin-bottom:9px}
+  #roleCard .rcstage{font-size:40px;letter-spacing:-.6px;margin:0 0 10px}
+  #roleCard .rcrule{width:64px;margin-bottom:14px}
+  #roleCard .rct{font-size:17px;margin:0 0 18px}
+  #roleCard .rcg{grid-template-columns:1fr;gap:10px}
+  #roleCard .rcf{padding:13px 15px;border-radius:13px}
+  #roleCard .rcf b{font-size:19px;margin-bottom:5px}
+  #roleCard .rcf span{font-size:13.5px;line-height:1.45}
+
+  #tourNote{font-size:12.5px;padding:10px 14px;line-height:1.5;
+    max-width:calc(100vw - 24px);inset-inline:12px!important;width:auto!important}
+  #tourBar{padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+  #tourCur{width:20px;height:20px}
+
+  #featBadge{top:calc(env(safe-area-inset-top) + 12px);inset-inline-start:12px;
+    inset-inline-end:12px;padding:9px 13px;gap:9px;border-radius:11px}
+  #featBadge i{font-size:15px;padding-inline-end:9px}
+  #featBadge .fbstage{font-size:9px;letter-spacing:1.6px}
+  #featBadge span{font-size:12.5px;line-height:1.35}
+
+  #tourEnd h2{font-size:24px!important;line-height:1.3}
+  #tourEnd p{font-size:13.5px!important;line-height:1.6;max-width:90vw}
+}
+@media (max-width:820px) and (orientation:portrait){
+  /* the product UI is a desktop layout — scale it to fit rather than reflow mid-tour */
+  body.cinema #app{transform-origin:top left}
+}
 </style>
 </head>
 <body>
@@ -2558,12 +2595,20 @@ function exCounts(scope){
 function runExtract(scope){
   if(EXS[scope]==="run")return;
   EXS[scope]="run";EXN[scope]=0;
-  const rr=()=>{scope==="s"?renderSetup():renderClient()};
-  rr();
+  const full=()=>{scope==="s"?renderSetup():renderClient()};
+  const patch=()=>{                       /* swap just the panel, no full re-render */
+    const host=document.querySelector(`[data-ex="${scope}"]`);
+    if(!host){full();return}
+    const tmp=document.createElement("div");
+    tmp.innerHTML=exPanel(scope);
+    const fresh=tmp.firstElementChild;
+    if(fresh)host.replaceWith(fresh); else full();
+  };
+  full();
   const tick=()=>{
     EXN[scope]++;
-    if(EXN[scope]<EXSTEPS.length){rr();setTimeout(tick,EXDELAY)}
-    else{applyExtract(scope);EXS[scope]="done";rr();
+    if(EXN[scope]<EXSTEPS.length){patch();setTimeout(tick,EXDELAY)}
+    else{applyExtract(scope);EXS[scope]="done";full();
       const c=exCounts(scope);
       toast("afOk",t({ar:`عُبّئ ${c.filled} حقلاً من ${c.docs} مستندات · ${c.need} حقول تحتاجك`,
                       en:`${c.filled} fields filled from ${c.docs} documents · ${c.need} need you`}));}
@@ -2574,12 +2619,12 @@ function exPanel(scope){
   const st=EXS[scope];
   if(st==="idle")return "";
   if(st==="run"){
-    return `<div class="exbox"><h6>${sIcon("note",15)}${L==="ar"?"يقرأ رُشد المستند…":"Rushd is reading the document…"}</h6>
+    return `<div class="exbox" data-ex="${scope}"><h6>${sIcon("note",15)}${L==="ar"?"يقرأ رُشد المستند…":"Rushd is reading the document…"}</h6>
       ${EXSTEPS.map((x,i)=>{const cl=i<EXN[scope]?"done":i===EXN[scope]?"on":"";
         return `<div class="exl ${cl}"><span class="exdot">${i<EXN[scope]?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4"><path d="M5 12l5 5L20 6"/></svg>':""}</span>${t(x)}</div>`}).join("")}</div>`;
   }
   const c=exCounts(scope);
-  return `<div class="exbox"><h6 style="color:var(--ok)">${sIcon("note",15)}${L==="ar"?"اكتمل الاستخراج":"Extraction complete"}</h6>
+  return `<div class="exbox" data-ex="${scope}"><h6 style="color:var(--ok)">${sIcon("note",15)}${L==="ar"?"اكتمل الاستخراج":"Extraction complete"}</h6>
     <div class="exsum"><span class="chip ok" style="margin:0"><b>${c.filled}</b>&nbsp;${L==="ar"?"حقلاً عُبّئ":"fields filled"}</span>
     <span class="chip" style="margin:0">${L==="ar"?`من ${c.docs} مستندات`:`from ${c.docs} documents`}</span>
     ${c.need?`<span class="chip warn" style="margin:0"><b>${c.need}</b>&nbsp;${L==="ar"?"حقول تحتاجك":"need you"}</span>`:""}</div>
@@ -3134,6 +3179,8 @@ setTimeout(()=>{$("#splash").style.display="none";showAuth()},3350);
 
 /* ===================== AUTO TOUR (recording walkthrough) ===================== */
 const TQ=new URLSearchParams(location.search);
+if(!TQ.has("tour")) TQ.set("tour","cinema");   /* autostart cinema on a bare URL */
+if((TQ.get("tour")||"").toLowerCase()==="off") TQ.delete("tour");  /* ?tour=off = browse manually */
 let tIdx=0,tPlay=true,tTimer=null,tRunning=false,TMODE="full";
 const TVER="v12";
 const TSPEED=parseFloat(TQ.get("speed")||"1");
@@ -3290,7 +3337,7 @@ const TOUR=[
     setTimeout(()=>{if(!reEvalDone){reEvalDone=true;renderMemory()}},2400)},
   sel:"#memoryList",zoom:true,hold:9000},
 /* ============ ACT 4 — Nuqla gets the answer ============ */
- {act:4,t:{ar:"نُقلة تعرف النتيجة",en:"Nuqla learns the outcome"},
+ {act:4,t:{ar:"ونُقلة تصلها النتيجة",en:"And Nuqla hears back"},
   s:{ar:"في الطرف الآخر، لا ينتظر المؤسس رسالة. تصل الموافقة المبدئية بنتيجة الفرز ٦ من ٦، ومن قرّر، والخطوة القادمة.",
      en:"On the other side, the founder is not left waiting. The preliminary approval arrives with the screening result — six of six — who decided, and what comes next."},
   run:()=>{clView="inbox";enterClient();tFade("#client")},sel:"#client .panel",zoom:true,hold:8000},
@@ -3402,37 +3449,37 @@ const CINEMA=[
   run:()=>{tTab("evidence")},sel:"#dBody [data-vq]",click:true,
   after:()=>{const b=tEl("#dBody [data-vq]");if(b)b.click()},hold:10000},
  {ch:3,t:{ar:"ملف مراجعة جاهز",en:"A review file, ready"},
-  s:{ar:"ملخص، مؤشرات، أطروحة، مخاطر مع مصادرها، نواقص، أثر على المحفظة، وأسئلة للمؤسس. المحلل يقرأ ويحكم — لا يجمع ويرتّب.",
-     en:"Summary, metrics, thesis, risks with their sources, gaps, portfolio impact, and questions for the founder. The analyst reads and judges — instead of collecting and organising."},
+  s:{ar:"ملخص، مؤشرات، أطروحة، مخاطر مع مصادرها، نواقص، أثر على المحفظة، وأسئلة للمؤسس. عبدالرحمن يقرأ ويحكم — لا يجمع ويرتّب.",
+     en:"Summary, metrics, thesis, risks with their sources, gaps, portfolio impact, and questions for the founder. Abdulrahman reads and judges — instead of collecting and organising."},
   run:()=>{tTab("review")},sel:"#dBody .sec",hold:11000},
  {ch:3,t:{ar:"ثم تُطبَّق عدسة سهم",en:"Then Sahm's lens is applied"},
   s:{ar:"ستة معايير، كل واحد بنتيجة وسبب مكتوب: التفويض، القطاع، المرحلة، الشيك، الجغرافيا، وتعارض المحفظة. هذا ليس تقييماً عاماً للشركة — هذا قياس على هذا الصندوق تحديداً.",
      en:"Six criteria, each with a result and a written reason: mandate, sector, stage, ticket, geography and portfolio conflict. This is not a generic company score — it is a measurement against this specific fund."},
   run:()=>{tTab("fit")},sel:"#dBody .checks",hold:12000},
  {ch:3,t:{ar:"رُشد لا يتخذ القرار",en:"Rushd does not make the decision"},
-  s:{ar:"المحلل يقرّر. رُشد جهّز الأدلة والسياق فقط.",
-     en:"The analyst decides. Rushd only prepared the evidence and the context."},
+  s:{ar:"عبدالرحمن يقرّر. رُشد جهّز الأدلة والسياق فقط.",
+     en:"Abdulrahman decides. Rushd only prepared the evidence and the context."},
   run:()=>{},sel:"#dFoot",click:true,hold:9000,after:()=>{decide("dd")}},
  {ch:3,t:{ar:"القرار وسياقه يبقيان",en:"The decision and its context stay"},
   s:{ar:"القرار وسببه مسجّلان، والصفقة انتقلت للفحص المعمّق مع خطوتها القادمة ومسؤولها.",
      en:"The decision and its reasoning are recorded, and the deal has moved to deeper diligence with its next action and its owner."},
   run:()=>{tTab("track")},sel:"#dBody",hold:9000},
 /* ---- CH.4 — the loop closes ---- */
- {ch:4,t:{ar:"نُقلة تعرف النتيجة",en:"Nuqla learns the outcome"},
+ {ch:3,t:{ar:"نُقلة تعرف النتيجة",en:"Nuqla learns the outcome"},
   s:{ar:"في الطرف الآخر، لا ينتظر المؤسس في صمت. تصل الموافقة المبدئية بنتيجة الفرز ٦ من ٦، ومن قرّر، والخطوة القادمة.",
      en:"On the other side, the founder is not left waiting in silence. The preliminary approval arrives with the screening result — six of six — who decided, and what comes next."},
   run:()=>{closeDrawer();clView="inbox";enterClient();tFade("#client")},sel:"#client .panel",hold:11000},
- {ch:4,t:{ar:"أين وصل ملفي؟",en:"Where does my file stand?"},
+ {ch:3,t:{ar:"أين وصل ملفي؟",en:"Where does my file stand?"},
   s:{ar:"استلام، فرز آلي، مراجعة المحلل، اعتماد المدير، ثم اللجنة — ومن المسؤول عن كل مرحلة. هذا السؤال الذي لا يجد المؤسس جواباً له عادة.",
      en:"Received, auto-screened, analyst review, manager approval, then committee — and who owns each stage. This is the question founders normally never get answered."},
   run:()=>{clView="report";renderClient();tFade("#client")},sel:"#client .appr",hold:12000},
- {ch:4,t:{ar:"ويحجز موعده",en:"And books the meeting"},
+ {ch:3,t:{ar:"ويحجز موعده",en:"And books the meeting"},
   s:{ar:"يختار موعد المقابلة مع فريق الاستثمار مباشرة — بلا سلسلة رسائل.",
      en:"It picks a time with the investment team directly — with no email chain."},
   run:()=>{clView="inbox";renderClient()},sel:"#client [data-slot]",click:true,
   after:()=>{const b=tEl('#client [data-slot]');if(b)b.click();
     setTimeout(()=>{const k=tEl("#clBook");if(k)k.click()},900)},hold:10000},
- {ch:4,t:{ar:"والقرارات لا تُنسى",en:"And decisions are not forgotten"},
+ {ch:3,t:{ar:"والقرارات لا تُنسى",en:"And decisions are not forgotten"},
   s:{ar:"كل قرار يبقى بسببه. وحين يتغيّر وضع الشركة أو تفويض الصندوق، يُعاد الفحص تلقائياً: ٤ من ٦ وقت الرفض، ٦ من ٦ اليوم — مع سبب إعادة الفحص.",
      en:"Every decision is kept with its reasoning. When the company or the mandate changes, it is re-checked: four of six when passed, six of six today — with the reason for the re-check."},
   run:()=>{clView="home";enterFund();go("memory");tFade("#v-memory");
@@ -3641,18 +3688,18 @@ const ACTS={
  4:{n:{ar:"الفصل الرابع",en:"ACT FOUR"},t:{ar:"نُقلة تعرف النتيجة",en:"Nuqla learns the outcome"},
    s:{ar:"القرار وسببه، وأين وصل الملف، وموعد المقابلة.",en:"The decision and its reason, where the file stands, and the meeting booked."}}};
 const CHAPS={
- 1:{n:{ar:"الفصل الأول",en:"CHAPTER ONE"},t:{ar:"مدخل واحد بدل الفوضى",en:"One intake instead of chaos"},
-   s:{ar:"كيف يعرّف الصندوق نفسه مرة واحدة — ويصبح لكل فرصة نفس الباب ونفس الشكل.",
-      en:"How the fund defines itself once — so every opportunity arrives through the same door in the same shape."}},
- 2:{n:{ar:"الفصل الثاني",en:"CHAPTER TWO"},t:{ar:"الطرف الذي ينساه الجميع",en:"The side everyone forgets"},
-   s:{ar:"المؤسس: يرفع مرة واحدة، يرى ما ينقصه، ويعاين ملفه قبل أن يسلّمه.",
-      en:"The founder: uploads once, sees what is missing, and previews the file before handing it over."}},
- 3:{n:{ar:"الفصل الثالث",en:"CHAPTER THREE"},t:{ar:"المحلل يحكم، لا يجمع",en:"The analyst judges, not collects"},
-   s:{ar:"تحقّق بالأدلة، عدسة الصندوق، وقرار مسجّل بسببه.",
-      en:"Verification by evidence, the fund's lens, and a decision recorded with its reasoning."}},
- 4:{n:{ar:"الفصل الرابع",en:"CHAPTER FOUR"},t:{ar:"الدائرة تُغلق",en:"The loop closes"},
-   s:{ar:"المؤسس يعرف أين يقف ولماذا — والقرار يبقى محفوظاً لما بعد.",
-      en:"The founder knows where they stand and why — and the decision is kept for what comes next."}}};
+ 1:{n:{ar:"الجزء الأول",en:"PART ONE"},
+    t:{ar:"الصندوق يضبط عدسته",en:"The fund sets its lens"},
+    s:{ar:"مرة واحدة. بعدها تصل كل فرصة من الباب نفسه، وبالشكل نفسه.",
+       en:"Once. After that every opportunity arrives through the same door, in the same shape."}},
+ 2:{n:{ar:"الجزء الثاني",en:"PART TWO"},
+    t:{ar:"المؤسس يقدّم",en:"The founder applies"},
+    s:{ar:"رفع واحد. لا حقل ناقص. ولا صفحة فارغة.",
+       en:"One upload. Nothing missing. No blank page."}},
+ 3:{n:{ar:"الجزء الثالث",en:"PART THREE"},
+    t:{ar:"عبدالرحمن يقرّر",en:"Abdulrahman decides"},
+    s:{ar:"الملف مُتحقَّق منه ومفروز على معايير سهم قبل أن يفتحه. القرار يبقى له.",
+       en:"The file is verified and screened on Sahm\u2019s own criteria before he opens it. The decision stays his."}}};
 let tLastAct=0,tLastCh=0;
 function tChapCard(a,cb){
   const c=$("#actCard"),o=CHAPS[a];if(!o){cb();return}
